@@ -1,0 +1,49 @@
+{  
+  "variables": {
+    "release_version_number": "",
+    "REDIS_SECRET":"{{env `REDIS_SECRET`}}"
+  },
+  "builders": [
+    {
+      "name":"auth-service",
+      "type": "docker",
+      "image": "node:lts-alpine",
+      "commit": true,
+      "changes": [
+        "WORKDIR /app",
+        "ENTRYPOINT [\"\"]",
+        "CMD node node_modules/@smembe812/oauth-server/lib/server.js serve 4433"
+      ]
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "shell",
+      "inline": ["mkdir /app"]
+    },
+    {
+      "type": "file",
+      "source": ".npmrc",
+      "destination": "/app/.npmrc"
+    },
+    {
+      "type": "shell",
+      "inline": [
+        "cd /app",
+        "yarn init --yes",
+        "yarn add @smembe812/oauth-server",
+        "yarn install",
+        "rm /app/.npmrc"
+      ]
+    }
+  ],
+  "post-processors": [
+    [
+      {
+        "type": "docker-tag",
+        "repository": "auth-service",
+        "tags": ["latest"]
+      }
+    ]
+  ]
+}

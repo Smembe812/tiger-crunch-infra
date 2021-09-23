@@ -1,0 +1,57 @@
+version: "3.9"
+services:
+  auth-service:
+    image: auth-service:latest
+    stdin_open: true
+    tty: true
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.auth.rule=Host(`tiger-crunch.com`)"
+      - "traefik.http.routers.auth.entrypoints=websecure"
+      - "traefik.http.routers.auth.tls=true"
+      - "traefik.http.middlewares.auth-service.compress=true"
+      - "traefik.http.middlewares.auth-service-retry.retry.attempts=4"
+      - "traefik.http.middlewares.auth-service-retry.retry.initialinterval=100ms"
+      - "traefik.http.routers.auth.middlewares=auth-service@docker,auth-service-retry@docker"
+      # - "traefik.http.routers.auth.tls.certresolver=tigerCrunch"
+    env_file:
+      - ./env/auth-service/.env
+    ports:
+      - "4433:4433"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./docker-volumes/certbot-certificates/keys:/app/keys
+      # - ./env:/app/env
+    links:
+      - redis
+  redis:
+    image: redis
+    command: redis-server #--requirepass ${REDIS_SECRET}
+    ports:
+      - 6379:6379
+    volumes:
+      - ./redis-env/redis.conf:/usr/local/etc/redis/redis.conf
+  file-proxy:
+    image: file-proxy:latest
+    stdin_open: true
+    tty: true
+    ports:
+      - "5000:5000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.files.rule=Host(`client.tiger-crunch.com`)"
+      - "traefik.http.routers.files.entrypoints=websecure"
+      - "traefik.http.routers.files.tls=true"
+    env_file:
+      - ./env/file-proxy/.env
+  build-all:
+    image: tiger-crunch-infra_build-all:latest
+    build: .
+    entrypoint: sh -c "packer build auth-server/packer.json && packer build file-proxy/packer.json"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+volumes:
+  tc-certbot-certificates:
+    external: true

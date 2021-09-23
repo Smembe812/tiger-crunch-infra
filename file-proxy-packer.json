@@ -1,0 +1,60 @@
+{  
+    "variables": {
+      "release_version_number": ""
+    },
+    "builders": [
+      {
+        "name":"file-proxy",
+        "type": "docker",
+        "image": "python:3.8-alpine",
+        "commit": true,
+        "changes": [
+          "WORKDIR /app/inextremis",
+          "ENTRYPOINT [\"\"]",
+          "CMD source inextremis/bin/activate && pipenv run start_flask --host 0.0.0.0"
+        ]
+      }
+    ],
+    "provisioners": [
+      {
+          "type": "shell",
+          "inline": [
+            "apk --update --upgrade add gcc musl musl-dev ffmpeg jpeg-dev zlib-dev libffi-dev cairo-dev pango-dev gdk-pixbuf-dev",
+            "apk --update add git"
+          ]
+      },
+      {
+          "type": "shell",
+          "inline": ["mkdir /app"]
+      },
+      {
+          "type": "shell",
+          "inline":"pip install pipenv"
+      },
+      {
+        "type": "shell",
+        "inline": [
+          "cd /app",
+          "git clone https://github.com/Smembe812/inextremis.git"
+        ]
+      },
+      {
+        "type": "shell",
+        "inline":[
+          "cd app/inextremis",
+          "python -m venv inextremis",
+          "source inextremis/bin/activate",
+          "pipenv install"
+        ]
+      }
+    ],
+    "post-processors": [
+      [
+        {
+          "type": "docker-tag",
+          "repository": "file-proxy",
+          "tags": ["latest"]
+        }
+      ]
+    ]
+  }

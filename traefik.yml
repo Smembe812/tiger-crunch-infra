@@ -1,0 +1,34 @@
+version: "3"
+services:
+  reverse-proxy:
+    # latest img
+    image:  traefik:v2.5
+    command:  
+      - "--api.insecure=true"
+      - "--providers.docker"
+      - "--providers.docker.exposedbydefault=false"
+      #define http/https entry points
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--providers.file.directory=/etc/traefik/dynamic_conf"
+    ports:
+      # HTTP for redirects
+      - "80:80"
+      # HTTPS for accessing web applications
+      - "443:443"
+      # The Web UI (enabled by --api.insecure=true)
+      - "8080:8080"
+    extra_hosts:
+      - 'tiger-crunch.com: 127.0.0.1'
+      - 'auth.tiger-crunch.com: 127.0.0.1'
+      - 'client.tiger-crunch.com: 127.0.0.1'
+    volumes:
+      - ./docker-volumes/certbot-certificates/keys:/tools/certs
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./traefik/config.yml:/etc/traefik/dynamic_conf/conf.yml:ro
+      # - tc-certbot-certificates:/etc/letsencrypt
+      # - /opt/dnsmasq.conf/dnsmasq.conf:/etc/dnsmasq.conf
+      # - ./docker-volumes/certbot-certificates/keys/:/docker-volumes/certbot-certificates/keys/
+volumes:
+  tc-certbot-certificates:
+    external: true

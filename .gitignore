@@ -1,0 +1,9 @@
+/docker-volumes
+/docker-images
+## env vars
+.env
+/env
+/redis-env
+## npm
+npmrc
+.npmrc
